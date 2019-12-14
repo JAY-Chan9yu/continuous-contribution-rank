@@ -14,5 +14,7 @@ class UserInformationViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    def create(self, request, *args, **kwargs):
-        pass
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        return instance
+
