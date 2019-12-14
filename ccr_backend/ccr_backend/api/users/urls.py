@@ -6,5 +6,5 @@ from django.conf.urls import url
 from api.users.views import UserInformationViewSet
 
 urlpatterns = [
-    url(r'^inform/$', UserInformationViewSet.as_view({'get': 'list', 'post': 'create'}), name='information'),
+    url(r'^inform/$', UserInformationViewSet.as_view({'get': 'list'}), name='information'),
 ]
