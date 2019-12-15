@@ -12,10 +12,16 @@ class UserInformationViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = UserSerializer(queryset, many=True)
-        return Response(serializer.data)
 
-    def create(self, request, *args, **kwargs):
-        pass
+        # vue.js 에서 cors 피하기 위해 header에 정의해줘야 한다.
+        response = Response(serializer.data, content_type='application/json')
+        response._headers['Access-Control-Allow-Origin'] = ('Access-Control-Allow-Origin', '*')
+
+        return response
+
+    def perform_create(self, serializer):
+        result = serializer.save()
+        return result
 
 
 class UserRegisterGitHubViewSet(viewsets.ModelViewSet, viewsets.ViewSetMixin):

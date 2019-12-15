@@ -14,4 +14,5 @@ class UserGitHubSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserGitHub
-        fields = ['id', 'user', 'address']
+        fields = ['id', 'user', 'address', 'count']
+        read_only_fields = ['count']
