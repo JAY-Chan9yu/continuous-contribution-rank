@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+"""Django's command-line utility for administrative task."""
 import os
 import sys
 
 
 def main():
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ccr_backend.conf.local')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'conf.local')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
