@@ -20,4 +20,5 @@ app_name = 'api'
 
 urlpatterns = [
     url(r'users/', include('api.users.urls')),
+    url(r'github/', include('api.github.urls')),
 ]
