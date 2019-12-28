@@ -1,4 +1,5 @@
 import os
+import time
 
 from celery import Celery
 from bs4 import BeautifulSoup
@@ -7,7 +8,6 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 
-# from users.models import UserGitHub
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'conf.local')
 
 BROKER_URL = settings.REDIS_BROKER_URL
@@ -72,3 +72,87 @@ def get_contribution_status(url):
         return True
 
     return False
+
+
+@app.task
+def update_commit_history(address):
+    """
+        처음 아이디가 입력 되었을때 (modified 값 보고)
+        total_commit, last commit update
+    """
+    from apps.github.models import GitHubCommit, GitHubAddress
+
+    utc_now = datetime.utcnow()
+
+    # TODO: GitHubCommit 생성 정리 (생성 방식이 이상함.. 없는거 알면서 get)
+    try:
+        github_commit = GitHubCommit.objects.filter(address=address).get()
+
+    except GitHubCommit.DoesNotExist:
+        print("GitHubCommit Does Not Exist.")
+        address = GitHubAddress.objects.filter(id=address).first()
+        if address is None:
+            return
+
+        github_commit = GitHubCommit.objects.create(
+            created=utc_now,
+            address=address
+        )
+
+    last_commit = None
+    total_commit_cnt = 0  # github 페이지에 노출되는 최대 커밋수(1년)
+    continuous_commit_cnt = 0  # 오늘 이전으로 연속된 커밋수
+    max_continuous_commit_cnt = 0  # 최대 연속 커밋수
+    check_continuous_cnt = 0  # 최대 연속 커밋수 체크
+
+    try:
+        url = "https://github.com/{}".format(github_commit.address.name)
+        source_code_from_URL = request.urlopen(url)
+        soup = BeautifulSoup(source_code_from_URL, 'html.parser')
+
+        date_str = utc_now.date().strftime('%Y-%m-%d')
+        contribution_graph = soup.find('svg', class_='js-calendar-graph-svg')
+
+        is_continuous = True
+        while True:
+            today_commit = contribution_graph.find('rect', attrs={"data-date": date_str})
+
+            # github 잔디에서 가져올 데이터가 없는경우
+            if today_commit is None:
+                break
+
+            commit_cnt = int(today_commit.attrs.get('data-count'))
+            if commit_cnt > 0:
+                total_commit_cnt += 1
+                check_continuous_cnt += 1
+
+                if last_commit is None:
+                    last_commit = datetime.strptime(last_commit, '%Y-%m-%d')
+
+                if is_continuous is True:
+                    continuous_commit_cnt += 1
+
+            if commit_cnt == 0:
+                # 최대 연속 커밋 수
+                if check_continuous_cnt > max_continuous_commit_cnt:
+                    max_continuous_commit_cnt = check_continuous_cnt
+
+                # 오늘 이전으로 연속적으로 커밋했는지 체크 끝
+                if is_continuous is True:
+                    is_continuous = False
+
+                check_continuous_cnt = 0
+
+            utc_now -= timedelta(days=1)
+            date_str = utc_now.date().strftime('%Y-%m-%d')
+
+    except Exception as e:
+        # TODO: log 남기기
+        print(e)
+
+    update_fields = ['total_commit', 'last_commit', 'continuous_commit', 'max_continuous_commit']
+    github_commit.last_commit = last_commit
+    github_commit.max_continuous_commit = max_continuous_commit_cnt
+    github_commit.continuous_commit = continuous_commit_cnt
+    github_commit.total_commit = total_commit_cnt
+    github_commit.save(update_fields=update_fields)
