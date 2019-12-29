@@ -75,29 +75,20 @@ def get_contribution_status(url):
 
 
 @app.task
-def update_commit_history(address):
+def update_commit_history(commit_id):
     """
         처음 아이디가 입력 되었을때 (modified 값 보고)
         total_commit, last commit update
     """
-    from apps.github.models import GitHubCommit, GitHubAddress
+    from apps.github.models import GitHubCommit
 
     utc_now = datetime.utcnow()
 
-    # TODO: GitHubCommit 생성 정리 (생성 방식이 이상함.. 없는거 알면서 get)
     try:
-        github_commit = GitHubCommit.objects.filter(address=address).get()
+        github_commit = GitHubCommit.objects.filter(id=commit_id).get()
 
     except GitHubCommit.DoesNotExist:
         print("GitHubCommit Does Not Exist.")
-        address = GitHubAddress.objects.filter(id=address).first()
-        if address is None:
-            return
-
-        github_commit = GitHubCommit.objects.create(
-            created=utc_now,
-            address=address
-        )
 
     last_commit = None
     total_commit_cnt = 0  # github 페이지에 노출되는 최대 커밋수(1년)
@@ -127,7 +118,7 @@ def update_commit_history(address):
                 check_continuous_cnt += 1
 
                 if last_commit is None:
-                    last_commit = datetime.strptime(last_commit, '%Y-%m-%d')
+                    last_commit = date_str
 
                 if is_continuous is True:
                     continuous_commit_cnt += 1
@@ -151,7 +142,7 @@ def update_commit_history(address):
         print(e)
 
     update_fields = ['total_commit', 'last_commit', 'continuous_commit', 'max_continuous_commit']
-    github_commit.last_commit = last_commit
+    github_commit.last_commit = datetime.strptime(last_commit, '%Y-%m-%d')
     github_commit.max_continuous_commit = max_continuous_commit_cnt
     github_commit.continuous_commit = continuous_commit_cnt
     github_commit.total_commit = total_commit_cnt
