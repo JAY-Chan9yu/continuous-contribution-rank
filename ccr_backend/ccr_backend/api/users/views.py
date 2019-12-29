@@ -13,10 +13,7 @@ class UserInformationViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = UserSerializer(queryset, many=True)
-
-        # vue.js 에서 cors 피하기 위해 header에 정의해줘야 한다.
         response = Response(serializer.data, content_type='application/json')
-        response._headers['Access-Control-Allow-Origin'] = ('Access-Control-Allow-Origin', '*')
 
         return response
 
@@ -52,14 +49,12 @@ class GitHubLoginViewSet(viewsets.ModelViewSet, viewsets.ViewSetMixin):
 
     def list(self, request, *args, **kwargs):
         # TODO : query 정리해서 깔끔하게 하기
-        rl = 'https://github.com/login/oauth/authorize?' \
-             'redirect_uri={}&' \
-             'client_id={}&' \
-             'scope={}'.format(settings.GITHUB_HOST,
-                               settings.GITHUB_CLIENT_ID,
-                               'user:email')
-        # vue.js 에서 cors 피하기 위해 header에 정의해줘야 한다.
+        rl = settings.GITHUB_AUTH_URL.format(
+            settings.GITHUB_HOST,
+            settings.GITHUB_CLIENT_ID,
+            'user:email'
+        )
         response = Response(rl, content_type='application/json')
-        response._headers['Access-Control-Allow-Origin'] = ('Access-Control-Allow-Origin', '*')
 
         return response
+
