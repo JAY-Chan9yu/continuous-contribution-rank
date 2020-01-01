@@ -48,7 +48,6 @@ class GitHubLoginViewSet(viewsets.ModelViewSet, viewsets.ViewSetMixin):
     serializer_class = UserGitHubSerializer
 
     def list(self, request, *args, **kwargs):
-        # TODO : query 정리해서 깔끔하게 하기
         rl = settings.GITHUB_AUTH_URL.format(
             settings.GITHUB_HOST,
             settings.GITHUB_CLIENT_ID,

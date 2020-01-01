@@ -6,6 +6,7 @@ from django.conf import settings
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 
+from api.github.pagination import CustomCursorPagination
 from api.github.serializers import GitHubAddressSerializer, GitHubCommitSerializer
 from apps.github.models import GitHubAddress, GitHubCommit
 from task.crawling_git import update_commit_history
@@ -74,8 +75,12 @@ class GitHubAddressViewSet(viewsets.ModelViewSet):
 class GitHubCommitViewSet(viewsets.ModelViewSet):
     queryset = GitHubCommit.objects.all()
     serializer_class = GitHubCommitSerializer
+    pagination_class = CustomCursorPagination
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        self.pagination_class.cursor = self.request.query_params.get('cursor')
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+
+        return self.get_paginated_response(serializer.data)
